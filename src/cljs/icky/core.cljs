@@ -59,7 +59,9 @@
                      (replace #"\\\s" "\\s")
                      (replace #"\\\s*$"  "")
                      (split #"\s"))
-        result (map #(if (= "!" (first %)) [not (re-pattern(str "(?i)" (subs % 1)))] [identity (re-pattern(str "(?i)" %))])
+        result (map #(if (= "!" (first %))
+                       [not (re-pattern(str "(?i)" (subs % 1)))]
+                       [identity (re-pattern(str "(?i)" %))])
                     patterns)]
     result))
 

@@ -121,8 +121,7 @@
   [:body {:font "normal 14px Arial, sans-serif"
           ;;:color monokai-green-hc
           :color tango-aluminium-light
-          :background-color bg3
-          }]
+          :background-color bg3}]
   [:.ac-renderer  ^:prefix {:font "normal 13px Arial, sans-serif"
                             :position "absolute"
                             ;; :background "#fff"
@@ -132,12 +131,11 @@
                             ;; :box-shadow "2px 2px 2px rgba(102, 102, 102, .4)" ;
 
                                                                            ;;:width "300px";
-                            }]
+}]
   [:.ac-row {:cursor "pointer"
-            :padding ".4em"}]
+             :padding ".4em"}]
 
   [:.ac-highlighted {:font-weight "bold" :background-color "#737429"}]
 
   [:.ac-active {:background-color "#b2b4bf"}]
-  #_[:button {:color "DodgerBlue"}]
-  )
+  #_[:button {:color "DodgerBlue"}])
