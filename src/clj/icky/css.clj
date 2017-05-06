@@ -1,6 +1,9 @@
 (ns icky.css
   (:require [garden.def :refer [defstyles]]))
 
+(def bg1 "#394034")
+(def bg2 "#473844")
+(def bg3 "#272822")
 (def monokai-yellow-d       "#BEB244")
 (def monokai-yellow-l       "#FFF7A8")
 (def monokai-orange-d       "#D47402")
@@ -77,7 +80,7 @@
 (def tango-grey-dark        "#2e3436")
 
 (defstyles screen
-  [:p {:color "DodgerBlue"}]
+
   [:input.smooth {:pointer-events "auto"
                   :background "none"
                   :border "none"
@@ -87,7 +90,7 @@
                   :font-size "1.2em"
                   :height "36px"
                   :padding-right "10px"
-                  :color "#212121"
+                  :color tango-aluminium-light
                   ;;:position "absolute"
                   :width "100%"}]
   [:div.category {:padding "2px"
@@ -99,9 +102,9 @@
   [:div.attribute-add {:padding "2px"
                        :color monokai-violet-lc}]
   [:span.item {:padding "2px"}]
-  [:search-container {:background-color "DodgerBlue"}]
+  ;; [:search-container {:background-color "DodgerBlue"}]
   [:div.cell-wrapper {:position "fixed" :padding "4px"}]
-  [:input {:color "black"}]
+  ;;[:input {:color "black"}]
   [:div.cursor {:position "absolute"
                 :top "8px"
                 :right "-5px"
@@ -116,97 +119,25 @@
   [:span {:padding "2px"}]
   [:div.solid {:color tango-sky-blue-dark}]
   [:body {:font "normal 14px Arial, sans-serif"
-          :color monokai-green-hc
-          ;; :background-color "black"
-}]
-  #_[:button {:color "DodgerBlue"}])
-;; #ExcelCursorOuter {
-;;                    position: relative;
-;;                    }
+          ;;:color monokai-green-hc
+          :color tango-aluminium-light
+          :background-color bg3
+          }]
+  [:.ac-renderer  ^:prefix {:font "normal 13px Arial, sans-serif"
+                            :position "absolute"
+                            ;; :background "#fff"
+                            :border "1px solid #666"
+                            :max-height "500px"
+                            :overflow "scroll"
+                            ;; :box-shadow "2px 2px 2px rgba(102, 102, 102, .4)" ;
 
+                                                                           ;;:width "300px";
+                            }]
+  [:.ac-row {:cursor "pointer"
+            :padding ".4em"}]
 
-;; #ExcelCursor {
-;;               position: absolute;
-;;               top: 8px;
-;;               right: -5px;
-;;               background: #000;
-;;               width: 5px;
-;;               height: 5px;
-;;               border: 1px solid #fff;
-;;               border-right: 0px;
-;;               border-bottom: 0px;
-;;               }
+  [:.ac-highlighted {:font-weight "bold" :background-color "#737429"}]
 
-;; /* some style */
-;; .ac-renderer {
-;;     font: normal 13px Arial, sans-serif;
-;;     position: absolute;
-;;     background: #fff;
-;;     border: 1px solid #666;
-;;     -moz-box-shadow: 2px 2px 2px rgba(102, 102, 102, .4);
-;;     -webkit-box-shadow: 2px 2px 2px rgba(102, 102, 102, .4);
-;;     width: 300px;}
-
-;; .ac-row {
-;;     cursor: pointer;
-;;     padding: .4em;}
-
-;; .ac-highlighted {
-;;     font-weight: bold;}
-
-;; .ac-toolbar {
-;;     position: relative;
-;;     -webkit-flex: 1;
-;;     flex: 1;
-;;     border-color: #a9d158;
-;;     border-width: 1;
-;;     background: #f6f6f6;
-;;     width: 100%;
-;;     padding: 4px;
-;;     height: 36px;
-;; }
-
-;; .ac-active {
-;;     background-color: #b2b4bf;
-;;     color: #212121;
-;; }
-
-;; input, textarea {
-;;     margin: 0;
-;;     outline: none;
-;; }
-
-;; body {
-;;     padding-left: 5%;
-;;     padding-right: 5%;
-;; }
-;; .z-1 {
-;;     z-index: 1;
-;; }
-;; .z-0 {
-;;     z-index: 0;
-;; }
-;; .ac-input {
-;;     border: 0;
-;;     pointer-events: auto;
-;;     background: none;
-;;     border: none;
-;;     box-sizing: border-box;
-;;     color: #fff;
-;;     display: block;
-;;     font-size: 1.2em;
-;;     height: 36px;
-;;     padding-right: 10px;
-;;     color: #212121;
-;;     position: absolute;
-;;     width: 100%;
-
-;; }
-;; .box {
-;;     border: 1px solid #a9d158;
-;;     padding: 5px;
-;;     width: 100%;
-;; }
-;; body {
-;;     /* background-color: #a9d158; */
-;; }
+  [:.ac-active {:background-color "#b2b4bf"}]
+  #_[:button {:color "DodgerBlue"}]
+  )

@@ -4,12 +4,14 @@
    [re-frisk.core :as rf]
    [devtools.core :as devtools]
    [icky.editor :as e]
-   [clojure.string :refer [replace split]]
+   [clojure.string :refer [replace split index-of]]
    [goog.json :as gson]
+   [goog.functions :refer [debounce]]
    ;;[goog.Uri.QueryData]
    [dirac.runtime]
    [icky.data :refer [commands]]
-   [icky.music :refer [songs]])
+   [icky.music :refer [songs]]
+   [icky.files :refer [project-files]])
 
   (:import [goog.net XhrIo]
            [goog.structs Map]
@@ -23,8 +25,8 @@
   ^boolean js/goog.DEBUG)
 
 (defonce app-state
-  (reagent/atom
-   {:text "Hello, what is your name? "}))
+
+  (reagent/atom {}))
 
 
 (defonce code-state (reagent/atom {:style {} :js-cm-opts {} :on-cm-int (fn [cm])}))
@@ -50,40 +52,179 @@
    [:p (:text @ratom) "FIXME"]
    [:p (count commands)]])
 
+(def my-songs (into #{} songs))
 
-;; (defconst helm-mm-space-regexp "\\s\\\\s-"
-;;  (replace-regexp-in-string helm-mm-space-regexp "\\s-" pattern nil t)))
-;;  "this is the\\ fun".replace(/\\ /, '\\s').split(/\s/)
-
-(defn get-patterns-fn [input]
-  (let [patterns (-> input
+(defn get-patterns [pattern]
+  (let [patterns (-> pattern
                      (replace #"\\\s" "\\s")
-                     (replace #"\\\s*$", "")
-                 (split #"\s"))]
-    (fn [to-match] (reduce #(if (re-find (re-pattern (str "(?i)" %2)) to-match ) true (reduced false)) false patterns))))
+                     (replace #"\\\s*$"  "")
+                     (split #"\s"))
+        result (map #(if (= "!" (first %)) [not (re-pattern(str "(?i)" (subs % 1)))] [identity (re-pattern(str "(?i)" %))])
+                    patterns)]
+    result))
 
-(defn get-matches [input state] (let [filter-fn (get-patterns-fn input)
-                                last-input (get @state :input "" )
-                                candidates songs]
-                             (swap! state assoc :input input)
-                            (filter filter-fn candidates)))
+(defn matched-positions [pat candidate]
+  (let [[f re] pat]
+    (loop [candidate candidate offset 0 matches []]
+      (if-let [match (re-find re candidate)]
+        (let [start (index-of candidate (f match))
+              end (+ start (count match))]
+          (recur (subs candidate end ) (+ end offset) (conj matches [(+ offset start)  (+ offset end)])))
+        matches))))
 
-(defn search-candidate [value]
-  ^{:key value} [:div.solid value])
+(defn re-pattern-highliter
+  "highlight a match based on the re patterns that matched it"
+  [patterns candidate]
+  (let [sorted-patterns (reverse(sort-by second #(count (str %)) patterns))]
+    (map #(matched-positions % candidate) sorted-patterns)))
 
-(defn search-box [ratom]
-  (let [state (reagent/atom {:matches []})
+(let [m "bade armsad ahd hea lt ad gat l lsslkh ejj hh hwhhhoohi d"
+      r (re-pattern-highliter (get-patterns "hh l") m)]
+  ;;(.log js/console (str "ch: " (reduce (fn [[a b] a]) r) ))
+  #_(.log js/console (apply str "result is " m " " (interpose " : " (map #(subs m (first %) (last %)) r)))))
+
+(defn get-matches [input candidates]
+  (let [patterns (get-patterns input)]
+    (filter #(every? (fn [[f re] p] (f (re-find re  %))) patterns) candidates)))
+
+;; (defvar helm-map
+;;   (let ((map (make-sparse-keymap)))
+;;     (set-keymap-parent map minibuffer-local-map)
+;;     (define-key map (kbd "<down>")     'helm-next-line)
+;;     (define-key map (kbd "<up>")       'helm-previous-line)
+;;     (define-key map (kbd "C-n")        'helm-next-line)
+;;     (define-key map (kbd "C-p")        'helm-previous-line)
+;;     (define-key map (kbd "<C-down>")   'helm-follow-action-forward)
+;;     (define-key map (kbd "<C-up>")     'helm-follow-action-backward)
+;;     (define-key map (kbd "<prior>")    'helm-previous-page)
+;;     (define-key map (kbd "<next>")     'helm-next-page)
+;;     (define-key map (kbd "M-v")        'helm-previous-page)
+;;     (define-key map (kbd "C-v")        'helm-next-page)
+;;     (define-key map (kbd "M-<")        'helm-beginning-of-buffer)
+;;     (define-key map (kbd "M->")        'helm-end-of-buffer)
+;;     (define-key map (kbd "C-g")        'helm-keyboard-quit)
+;;     (define-key map (kbd "<right>")    'helm-next-source)
+;;     (define-key map (kbd "<left>")     'helm-previous-source)
+;;     (define-key map (kbd "<RET>")      'helm-maybe-exit-minibuffer)
+;;     (define-key map (kbd "C-i")        'helm-select-action)
+;;     (define-key map (kbd "C-z")        'helm-execute-persistent-action)
+;;     (define-key map (kbd "C-j")        'helm-execute-persistent-action)
+;;     (define-key map (kbd "C-o")        'helm-next-source)
+;;     (define-key map (kbd "M-o")        'helm-previous-source)
+;;     (define-key map (kbd "C-l")        'helm-recenter-top-bottom-other-window)
+;;     (define-key map (kbd "M-C-l")      'helm-reposition-window-other-window)
+;;     (define-key map (kbd "C-M-v")      'helm-scroll-other-window)
+;;     (define-key map (kbd "M-<next>")   'helm-scroll-other-window)
+;;     (define-key map (kbd "C-M-y")      'helm-scroll-other-window-down)
+;;     (define-key map (kbd "C-M-S-v")    'helm-scroll-other-window-down)
+;;     (define-key map (kbd "M-<prior>")  'helm-scroll-other-window-down)
+;;     (define-key map (kbd "<C-M-down>") 'helm-scroll-other-window)
+;;     (define-key map (kbd "<C-M-up>")   'helm-scroll-other-window-down)
+;;     (define-key map (kbd "C-@")        'helm-toggle-visible-mark)
+;;     (define-key map (kbd "C-SPC")      'helm-toggle-visible-mark)
+;;     (define-key map (kbd "M-SPC")      'helm-toggle-visible-mark)
+;;     (define-key map (kbd "M-[")        nil)
+;;     (define-key map (kbd "M-(")        'helm-prev-visible-mark)
+;;     (define-key map (kbd "M-)")        'helm-next-visible-mark)
+;;     (define-key map (kbd "C-k")        'helm-delete-minibuffer-contents)
+;;     (define-key map (kbd "C-x C-f")    'helm-quit-and-find-file)
+;;     (define-key map (kbd "M-m")        'helm-toggle-all-marks)
+;;     (define-key map (kbd "M-a")        'helm-mark-all)
+;;     (define-key map (kbd "M-U")        'helm-unmark-all)
+;;     (define-key map (kbd "C-M-a")      'helm-show-all-in-this-source-only)
+;;     (define-key map (kbd "C-M-e")      'helm-display-all-sources)
+;;     (define-key map (kbd "C-s")        'undefined)
+;;     (define-key map (kbd "M-s")        'undefined)
+;;     (define-key map (kbd "C-}")        'helm-narrow-window)
+;;     (define-key map (kbd "C-{")        'helm-enlarge-window)
+;;     (define-key map (kbd "C-c -")      'helm-swap-windows)
+;;     (define-key map (kbd "C-c C-y")    'helm-yank-selection)
+;;     (define-key map (kbd "C-c C-k")    'helm-kill-selection-and-quit)
+;;     (define-key map (kbd "C-c C-i")    'helm-copy-to-buffer)
+;;     (define-key map (kbd "C-c C-f")    'helm-follow-mode)
+;;     (define-key map (kbd "C-c C-u")    'helm-refresh)
+;;     (define-key map (kbd "C-c >")      'helm-toggle-truncate-line)
+;;     (define-key map (kbd "M-p")        'previous-history-element)
+;;     (define-key map (kbd "M-n")        'next-history-element)
+;;     (define-key map (kbd "C-!")        'helm-toggle-suspend-update)
+;;     (define-key map (kbd "C-x b")      'helm-resume-previous-session-after-quit)
+;;     (define-key map (kbd "C-x C-b")    'helm-resume-list-buffers-after-quit)
+;;     ;; Disable `file-cache-minibuffer-complete'.
+;;     (define-key map (kbd "<C-tab>")    'undefined)
+;;     ;; Multi keys
+;;     (define-key map (kbd "C-t")        'helm-toggle-resplit-and-swap-windows)
+;;     ;; Debugging command
+;;     (define-key map (kbd "C-h C-d")    'undefined)
+;;     (define-key map (kbd "C-h C-d")    'helm-enable-or-switch-to-debug)
+;;     ;; Allow to eval keymap without errors.
+;;     (define-key map [f1] nil)
+;;     (define-key map (kbd "C-h C-h")    'undefined)
+;;     (define-key map (kbd "C-h h")      'undefined)
+;;     (helm-define-key-with-subkeys map
+;;       (kbd "C-w") ?\C-w 'helm-yank-text-at-point
+;;       '((?\C-_ . helm-undo-yank-text-at-point)))
+;;     ;; Use `describe-mode' key in `global-map'.
+;;     (cl-dolist (k (where-is-internal 'describe-mode global-map))
+;;       (define-key map k 'helm-help))
+;;     (define-key map (kbd "C-c ?")    'helm-help)
+;;     ;; Bind all actions from 1 to 12 to their corresponding nth index+1.
+;;     (cl-loop for n from 0 to 12 do
+;;              (define-key map (kbd (format "<f%s>" (1+ n)))
+;;                `(lambda ()
+;;                   (interactive)
+;;                   (helm-select-nth-action ,n))))
+;;     map)
+;;   "Keymap for helm.")
+
+(defn search-box [ratom initial-candidates]
+  (let [state (reagent/atom {:matches [] :selected 0})
         change-fn (fn [e] (let [val (.. e -target -value)
-                               ms (if (= val "") [] (get-matches val state))]
-                           (swap! state assoc :matches ms)))]
+                                prev-input (get @state :previous-input "")
+                                go-back? (if (or (empty? (:matches @state)) (< (count val) (count prev-input))) true false)
+                                candidates (if (or (empty? (:matches @state)) (< (count val) (count prev-input)))
+                                             initial-candidates
+                                             (:matches @state))
+                                ms (if (= val "") [] (get-matches val candidates))]
+                            (.log js/console (str (.-key e) " :  " (.-keyCode e) " : " (.-metaKey e)))
+
+                            (swap! state assoc :previous-input val)
+                            (swap! state assoc :matches ms)))
+        ;; key-fn (fn [e] (.persist e) (.log js/console (str (.-key e) " " (.-keyCode e))))
+        key-fn (fn [event]
+                 (letfn [(move-up [] (.log js/console "moving up")
+                           (swap! state assoc :selected (dec (get @state :selected 0)))
+                           (.preventDefault event)
+                           (.stopPropagation event))
+                         (move-down [] (.log js/console "moving down")
+                           (swap! state assoc :selected (inc (get @state :selected 0)))
+                           (.preventDefault event)
+                           (.stopPropagation event))
+                         (move-beginning [])
+                         (move-end [])
+                         (close [])
+                         (select [])
+                         (persistent-action []) ]
+                   (.log js/console (str (.-key event) " " (.-keyCode event)))
+                   (cond
+                     (and (.-ctrlKey event) (= "n" (.-key event)))
+                     (move-down)
+                     (and (.-ctrlKey event) (= "p" (.-key event)))
+                     (move-up)
+                     )
+                   (.log js/console (str (.-key event) " " (.-keyCode event)))))]
+    (rf/add-data :search-state state)
     (fn []
-      [:div.search-container
-       [:input.smooth
-        {:on-change change-fn
-         :on-blur #(.log js/console "blur")}]
-        [:div [:p (str "text " (count (:matches @state)))]
-        (for [item (:matches @state)] (search-candidate item) )
-        ]])))
+      (let [hits (:matches @state)]
+        [:div.search-container {:on-key-press key-fn}
+         [:input.smooth
+          {:on-change change-fn
+           :content-editable true
+           :on-key-down key-fn
+           :tab-index 0
+           :on-blur #(reset! state {:matches []})}]
+         [:div.ac-renderer {:style {:display (if (zero? (count hits)) "none" "block")}} [:p (str "matches: " (count hits))]
+          (doall (map-indexed (fn [i item] ^{:key i} [:div.ac-row {:class-name (if (= i (get @state :selected 0)) "ac-highlighted")} item])
+                              hits))]]))))
 
 (defn attribute [subcat prefix name slug enabled]
   ^{:key (str subcat prefix name slug)}
@@ -197,6 +338,7 @@
   [:div.ik-column (doall (map grid-cell rows))])
 
 (defn grid []
+
   [:div
    #_(doall (map grid-row (range grid-size)))
    (doall
@@ -211,7 +353,7 @@
 (defn reload []
   #_(reagent/render [page app-state]
                     (.getElementById js/document "app"))
-  (reagent/render [search-box app-state]
+  (reagent/render [search-box app-state (set project-files)]
                   (.getElementById js/document "search"))
   (reagent/render [attribute-tree attribute-state]
                   (.getElementById js/document "attributes"))
