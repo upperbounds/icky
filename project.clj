@@ -1,10 +1,11 @@
 (defproject icky "0.1.0-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 ;; [org.clojure/clojure "1.9.0-alpha15"]
+                 ;; [org.clojure/clojure "1.9.0-alpha16"]
                  [org.clojure/clojurescript "1.9.521"]
                  [reagent "0.6.1"]
                  [binaryage/devtools "0.9.4"]
-                 [binaryage/dirac "1.2.7"]
+                 [binaryage/dirac "1.2.6"]
+                 [devcards "0.2.3"]
                  [org.clojure/core.async "0.3.442"]
                  [compojure "1.6.0"]
                  [ring-server "0.4.0"]
@@ -40,13 +41,16 @@
    {:dependencies [[figwheel-sidecar "0.5.10"]
                    [com.cemerick/piggieback "0.2.1"]]
     :plugins      [[lein-figwheel "0.5.10"]
-                   [cider/cider-nrepl "0.14.0"]
+                   ;; [cider/cider-nrepl "0.14.0"]
+                   [cider/cider-nrepl "0.15.0-SNAPSHOT"]
                    [lein-garden "0.3.0"]]}
    :repl
    {:repl-options {:port             8230
                    :nrepl-middleware [dirac.nrepl/middleware]
                    :init             (do
                                        (require 'dirac.agent)
+                                       (use 'figwheel-sidecar.repl-api)
+                                       (start-figwheel! "dev" "devcards-test")
                                        (dirac.agent/boot!))}}}
   :cljsbuild
   {:builds
@@ -59,6 +63,17 @@
                     :output-dir           "resources/public/js/compiled/dev"
                     :asset-path           "js/compiled/dev"
                     :source-map-timestamp true}}
+    {:id "devcards-test"
+     :source-paths ["src/cljs" "test/cljs"]
+     :figwheel {:devcards true}
+     :compiler {:main runners.browser
+                :optimizations :none
+                :asset-path "cljs/tests/out"
+                :output-dir "resources/public/cljs/tests/out"
+                :output-to "resources/public/cljs/tests/all-tests.js"
+                :source-map-timestamp true}}
+    #_{:id "test"
+     :source-paths ["src/cljs" "test"]}
     {:id           "min"
      :source-paths ["src/cljs"]
      :compiler     {:main            icky.core

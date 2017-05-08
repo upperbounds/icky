@@ -223,7 +223,9 @@
            :content-editable true
            :on-key-down key-fn
            :tab-index 0
-           :on-blur #(reset! state {:matches []})}]
+           :on-blur #(when(= (.-body js/document)
+                             (.-activeElement js/document))
+                       (reset! state {:matches []}))}]
          [:div.ac-renderer {:style {:display (if (zero? (count hits)) "none" "block")}} [:p (str "matches: " (count hits))]
           (doall (map-indexed (fn [i item] ^{:key i} [:div.ac-row {:class-name (if (= i (get @state :selected 0)) "ac-highlighted")} item])
                               hits))]]))))
