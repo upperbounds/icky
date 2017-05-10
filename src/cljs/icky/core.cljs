@@ -1,7 +1,7 @@
 (ns icky.core
   (:require
    [reagent.core :as reagent]
-   [re-frisk.core :as rf]
+;;   [re-frisk.core :as rf]
    [devtools.core :as devtools]
    [icky.editor :as e]
    [clojure.string :refer [replace split index-of]]
@@ -18,9 +18,6 @@
            [goog.Uri QueryData]
            [goog.events KeyCodes]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Vars
-
 (defonce debug?
   ^boolean js/goog.DEBUG)
 
@@ -28,12 +25,8 @@
 
   (reagent/atom {}))
 
-
 (defonce code-state (reagent/atom {:style {} :js-cm-opts {} :on-cm-int (fn [cm])}))
-;; (defonce client (js/algoliasearch "Z8CHXVEJ2D" "1e408a8a03a2ad57391ba18345680301"))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Page
 (defonce attribute-state (reagent/atom {}) )
 
 (defn load-remote []
@@ -78,12 +71,42 @@
   "highlight a match based on the re patterns that matched it"
   [patterns candidate]
   (let [sorted-patterns (reverse(sort-by second #(count (str %)) patterns))]
-    (map #(matched-positions % candidate) sorted-patterns)))
+    ;;(reduce
+    ;;(fn [a b] a)
 
-(let [m "bade armsad ahd hea lt ad gat l lsslkh ejj hh hwhhhoohi d"
-      r (re-pattern-highliter (get-patterns "hh l") m)]
-  ;;(.log js/console (str "ch: " (reduce (fn [[a b] a]) r) ))
-  #_(.log js/console (apply str "result is " m " " (interpose " : " (map #(subs m (first %) (last %)) r)))))
+    (map #(matched-positions % candidate) sorted-patterns)))
+;; )
+
+;; if sequence before insert before
+;; if seq after insert after
+;;if start inclusive merges start
+;; if end inclusiv merge end
+
+(let [m "alog"
+      r (re-pattern-highliter (get-patterns "log a") m)]
+  (.log js/console (str "ch: " r ))
+  (.log js/console (apply str "result is " m " " (interpose " : " (map #(subs m (first %) (last %)) r)))))
+
+(def pos '([[43 45] [48 50]] [[20 21] [30 31] [32 33] [35 36]]))
+
+(def pos2 '([[2 4]] [[0 1]]))
+
+(defn sort-positon [r c]
+  (let [[br er] r
+        [bc ec] c]
+
+    (cond
+      (and(< br bc ) (< er ec)) [c r]
+      #_(or (> br er) (> er bc) )
+      :else [r c]
+          )
+    ;;(if )
+    )
+  )
+(= (sort-positon [2 4] [0 1])
+   [[0 1] [2 4]])
+
+(reduce (fn [a b] (map-indexed (fn [i y] (print y)  a ) b ) b  ) pos2)
 
 (defn get-matches [input candidates]
   (let [patterns (get-patterns input)]
@@ -208,10 +231,12 @@
                          (persistent-action []) ]
                    (.log js/console (str (.-key event) " " (.-keyCode event)))
                    (cond
-                     (and (.-ctrlKey event) (= "n" (.-key event)))
+                     (or (= "ArrowDown" (.-key event)) (and (.-ctrlKey event) (= "n" (.-key event))))
                      (move-down)
-                     (and (.-ctrlKey event) (= "p" (.-key event)))
+                     (or (= "ArrowUp" (.-key event)) (and (.-ctrlKey event) (= "p" (.-key event))))
                      (move-up)
+                     (= "Escape" (.-key event))
+                     (reset! state {:matches []})
                      )
                    (.log js/console (str (.-key event) " " (.-keyCode event)))))]
     (rf/add-data :search-state state)
@@ -236,7 +261,7 @@
    #_(str prefix " : " name ": " slug)]
   )
 
-(defn dev-setup []
+#_(defn dev-setup []
   (when debug?
     (enable-console-print!)
     (rf/enable-frisk!)
@@ -357,7 +382,7 @@
 (defn reload []
   #_(reagent/render [page app-state]
                     (.getElementById js/document "app"))
-  (reagent/render [search-box app-state (set project-files)]
+  (reagent/render [search-box app-state (set my-songs)]
                   (.getElementById js/document "search"))
   (reagent/render [attribute-tree attribute-state]
                   (.getElementById js/document "attributes"))
@@ -372,4 +397,4 @@
 
 (defn ^:export main []
   (dev-setup)
-  (reload))
+  #_(reload))
