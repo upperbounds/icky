@@ -1,7 +1,7 @@
 (ns icky.core
   (:require
    [reagent.core :as reagent]
-;;   [re-frisk.core :as rf]
+   [re-frisk.core :as rf]
    [devtools.core :as devtools]
    [icky.editor :as e]
    [clojure.string :refer [replace split index-of]]
@@ -64,49 +64,41 @@
       (if-let [match (re-find re candidate)]
         (let [start (index-of candidate (f match))
               end (+ start (count match))]
-          (recur (subs candidate end ) (+ end offset) (conj matches [(+ offset start)  (+ offset end)])))
+          (recur (subs candidate end) (+ end offset) (conj matches [(+ offset start)  (+ offset end)])))
         matches))))
 
 (defn re-pattern-highliter
   "highlight a match based on the re patterns that matched it"
   [patterns candidate]
-  (let [sorted-patterns (reverse(sort-by second #(count (str %)) patterns))]
-    ;;(reduce
-    ;;(fn [a b] a)
-
-    (map #(matched-positions % candidate) sorted-patterns)))
-;; )
-
-;; if sequence before insert before
-;; if seq after insert after
-;;if start inclusive merges start
-;; if end inclusiv merge end
-
-(let [m "alog"
-      r (re-pattern-highliter (get-patterns "log a") m)]
-  (.log js/console (str "ch: " r ))
-  (.log js/console (apply str "result is " m " " (interpose " : " (map #(subs m (first %) (last %)) r)))))
-
-(def pos '([[43 45] [48 50]] [[20 21] [30 31] [32 33] [35 36]]))
-
-(def pos2 '([[2 4]] [[0 1]]))
-
-(defn sort-positon [r c]
-  (let [[br er] r
-        [bc ec] c]
-
-    (cond
-      (and(< br bc ) (< er ec)) [c r]
-      #_(or (> br er) (> er bc) )
-      :else [r c]
-          )
-    ;;(if )
-    )
-  )
-(= (sort-positon [2 4] [0 1])
-   [[0 1] [2 4]])
-
-(reduce (fn [a b] (map-indexed (fn [i y] (print y)  a ) b ) b  ) pos2)
+  (let [match-indices (->> patterns
+                           (map #(matched-positions % candidate))
+                           (apply concat)
+                           (sort-by first))
+        optimal-matches (reduce
+         (fn [candidates next-candidate]
+           (let [last-pair (last candidates)]
+             (if (> (last last-pair) (first next-candidate))
+               (assoc candidates (dec (count candidates)) [(min (first last-pair) (first next-candidate))
+                                                           (max (last last-pair) (last next-candidate))])
+               (conj candidates next-candidate))))
+         [(first match-indices)]
+         (rest match-indices))]
+    ;; optimal-matches
+    (into [] (concat [:div] (loop [pats optimal-matches
+                                  parts []
+                                  final []
+                                  last-index 0]
+                             (if (empty? pats)
+                               (if (not= last-index (count candidate)) (conj final [:span.ac-highlighted-nomatch (subs candidate last-index  (count candidate))]) final)
+                               (let [pair (first pats)
+                                     lead (if (< last-index (first pair)) [:span.ac-highlighted-nomatch (subs candidate last-index (first pair))])
+                                     highlight [:span.ac-highlighted-match (subs candidate (first pair) (last pair))]]
+                                 (recur (rest pats)
+                                        []
+                                        (if lead
+                                          (conj (conj final lead) highlight)
+                                          (conj final highlight ))
+                                        (last pair)))))))))
 
 (defn get-matches [input candidates]
   (let [patterns (get-patterns input)]
@@ -201,6 +193,7 @@
 ;;     map)
 ;;   "Keymap for helm.")
 
+
 (defn search-box [ratom initial-candidates]
   (let [state (reagent/atom {:matches [] :selected 0})
         change-fn (fn [e] (let [val (.. e -target -value)
@@ -211,7 +204,7 @@
                                              (:matches @state))
                                 ms (if (= val "") [] (get-matches val candidates))]
                             (.log js/console (str (.-key e) " :  " (.-keyCode e) " : " (.-metaKey e)))
-
+                            ;;(swap! state assoc :value val)
                             (swap! state assoc :previous-input val)
                             (swap! state assoc :matches ms)))
         ;; key-fn (fn [e] (.persist e) (.log js/console (str (.-key e) " " (.-keyCode e))))
@@ -252,7 +245,20 @@
                              (.-activeElement js/document))
                        (reset! state {:matches []}))}]
          [:div.ac-renderer {:style {:display (if (zero? (count hits)) "none" "block")}} [:p (str "matches: " (count hits))]
-          (doall (map-indexed (fn [i item] ^{:key i} [:div.ac-row {:class-name (if (= i (get @state :selected 0)) "ac-highlighted")} item])
+          (doall (map-indexed
+                  (fn [i item] ^{:key i} [:div.ac-row {:class-name (if (= i (get @state :selected 0)) "ac-highlighted")}
+                                          (re-pattern-highliter (get-patterns (get @state :previous-input [])) item)
+                                          #_[:div [:span "a"]
+                                           [:span.ac-highlighted-match "log"]
+                                           [:span " is a "]
+                                           [:span.ac-highlighted-match "log"]
+                                           [:span " but n"]
+                                           [:span.ac-highlighted-match "o"]
+                                           [:span "t "]
+                                           [:span.ac-highlighted-match "log"]
+                                           [:span.ac-highlighted-match "g"]]
+                                          ;;item
+                                          ])
                               hits))]]))))
 
 (defn attribute [subcat prefix name slug enabled]
@@ -261,7 +267,7 @@
    #_(str prefix " : " name ": " slug)]
   )
 
-#_(defn dev-setup []
+(defn dev-setup []
   (when debug?
     (enable-console-print!)
     (rf/enable-frisk!)
@@ -386,6 +392,7 @@
                   (.getElementById js/document "search"))
   (reagent/render [attribute-tree attribute-state]
                   (.getElementById js/document "attributes"))
+
   #_(reagent/render [cell] (.getElementById js/document "excel"))
 
   #_(reagent/render [export attribute-state] (.getElementById js/document "export"))
@@ -397,4 +404,4 @@
 
 (defn ^:export main []
   (dev-setup)
-  #_(reload))
+  (reload))

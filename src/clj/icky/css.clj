@@ -136,6 +136,8 @@
              :padding ".4em"}]
 
   [:.ac-highlighted {:font-weight "bold" :background-color "#737429"}]
+  [:.ac-highlighted-match {:color monokai-green-d :padding 0}]
+  [:.ac-highlighted-nomatch {:padding 0}]
 
   [:.ac-active {:background-color "#b2b4bf"}]
   #_[:button {:color "DodgerBlue"}])
