@@ -47,6 +47,17 @@
 
 (def my-songs (into #{} songs))
 
+(defn element-in-viewport
+  "is any part of the element in the viewport? adapted from:
+   HTTP://stackoverflow.com/questions/123999/how-to-tell-if-a-dom-element-is-visible-in-the-current-viewport/7557433#7557433"
+  [e bounding-element] (let [rect (.getBoundingClientRect e)
+                              bounding-rect (.getBoundingClientRect bounding-element)]
+        (and (>= (.-top rect) 0) (>= (.-left rect) 0)
+             #_(<= (.-bottom rect) (or (.-innerHeight js/window) (.. js/document -documentElement -clientHeight)))
+             #_(<= (.-right rect) (or (.-innerWidth js/window) (.. js/document -documentElement -clientWidth)))
+             (<= (.-top rect) (.-bottom bounding-rect))
+             (<= (.-right rect) (.-right bounding-rect)))))
+
 (defn get-patterns [pattern]
   (let [patterns (-> pattern
                      (replace #"\\\s" "\\s")
@@ -75,30 +86,30 @@
                            (apply concat)
                            (sort-by first))
         optimal-matches (reduce
-         (fn [candidates next-candidate]
-           (let [last-pair (last candidates)]
-             (if (> (last last-pair) (first next-candidate))
-               (assoc candidates (dec (count candidates)) [(min (first last-pair) (first next-candidate))
-                                                           (max (last last-pair) (last next-candidate))])
-               (conj candidates next-candidate))))
-         [(first match-indices)]
-         (rest match-indices))]
+                         (fn [candidates next-candidate]
+                           (let [last-pair (last candidates)]
+                             (if (> (last last-pair) (first next-candidate))
+                               (assoc candidates (dec (count candidates)) [(min (first last-pair) (first next-candidate))
+                                                                           (max (last last-pair) (last next-candidate))])
+                               (conj candidates next-candidate))))
+                         [(first match-indices)]
+                         (rest match-indices))]
     ;; optimal-matches
     (into [] (concat [:div] (loop [pats optimal-matches
-                                  parts []
-                                  final []
-                                  last-index 0]
-                             (if (empty? pats)
-                               (if (not= last-index (count candidate)) (conj final [:span.ac-highlighted-nomatch (subs candidate last-index  (count candidate))]) final)
-                               (let [pair (first pats)
-                                     lead (if (< last-index (first pair)) [:span.ac-highlighted-nomatch (subs candidate last-index (first pair))])
-                                     highlight [:span.ac-highlighted-match (subs candidate (first pair) (last pair))]]
-                                 (recur (rest pats)
-                                        []
-                                        (if lead
-                                          (conj (conj final lead) highlight)
-                                          (conj final highlight ))
-                                        (last pair)))))))))
+                                   parts []
+                                   final []
+                                   last-index 0]
+                              (if (empty? pats)
+                                (if (not= last-index (count candidate)) (conj final [:span.ac-highlighted-nomatch (subs candidate last-index  (count candidate))]) final)
+                                (let [pair (first pats)
+                                      lead (if (< last-index (first pair)) [:span.ac-highlighted-nomatch (subs candidate last-index (first pair))])
+                                      highlight [:span.ac-highlighted-match (subs candidate (first pair) (last pair))]]
+                                  (recur (rest pats)
+                                         []
+                                         (if lead
+                                           (conj (conj final lead) highlight)
+                                           (conj final highlight ))
+                                         (last pair)))))))))
 
 (defn get-matches [input candidates]
   (let [patterns (get-patterns input)]
@@ -249,17 +260,17 @@
                   (fn [i item] ^{:key i} [:div.ac-row {:class-name (if (= i (get @state :selected 0)) "ac-highlighted")}
                                           (re-pattern-highliter (get-patterns (get @state :previous-input [])) item)
                                           #_[:div [:span "a"]
-                                           [:span.ac-highlighted-match "log"]
-                                           [:span " is a "]
-                                           [:span.ac-highlighted-match "log"]
-                                           [:span " but n"]
-                                           [:span.ac-highlighted-match "o"]
-                                           [:span "t "]
-                                           [:span.ac-highlighted-match "log"]
-                                           [:span.ac-highlighted-match "g"]]
+                                             [:span.ac-highlighted-match "log"]
+                                             [:span " is a "]
+                                             [:span.ac-highlighted-match "log"]
+                                             [:span " but n"]
+                                             [:span.ac-highlighted-match "o"]
+                                             [:span "t "]
+                                             [:span.ac-highlighted-match "log"]
+                                             [:span.ac-highlighted-match "g"]]
                                           ;;item
                                           ])
-                              hits))]]))))
+                  hits))]]))))
 
 (defn attribute [subcat prefix name slug enabled]
   ^{:key (str subcat prefix name slug)}
@@ -393,7 +404,7 @@
   (reagent/render [attribute-tree attribute-state]
                   (.getElementById js/document "attributes"))
 
-  #_(reagent/render [cell] (.getElementById js/document "excel"))
+  (reagent/render [cell] (.getElementById js/document "excel"))
 
   #_(reagent/render [export attribute-state] (.getElementById js/document "export"))
 
