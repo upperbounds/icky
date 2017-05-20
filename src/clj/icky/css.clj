@@ -131,10 +131,12 @@
                             ;; :box-shadow "2px 2px 2px rgba(102, 102, 102, .4)" ;
 
                                                                            ;;:width "300px";
-}]
+                            }]
+  [:.ac-renderer-container {:background-color bg3
+                            :position "absolute"
+                            :width "100%"}]
   [:.ac-row {:cursor "pointer"
              :padding ".4em"}]
-
   [:.ac-highlighted {:font-weight "bold" :background-color "#737429"}]
   [:.ac-highlighted-match {:color monokai-green-d :padding 0}]
   [:.ac-highlighted-nomatch {:padding 0}]

@@ -14,12 +14,20 @@
             [yaml.reader :refer :all]
             [hiccup.middleware :refer [wrap-base-url]]
             [ring.middleware.json :refer [wrap-json-response]]
-            [clojure.tools.nrepl.server :refer [start-server stop-server]]))
+            [clojure.tools.nrepl.server :refer [start-server stop-server]]
+            [icky.data :refer [commands]]
+            [icky.music :as m]
+            [icky.files :as f]))
 
 (def file-map
   {:master "/Users/colin/projects/mojo/app/enums/categories/category_attributes_master.yml"
    :new "/Users/colin/projects/mojo/app/enums/categories/category_attributes_new.yml"
    :sale "/Users/colin/projects/mojo/app/enums/categories/category_attributes_sale.yml"})
+
+(def data-sets
+  {:project-files f/project-files
+   :songs m/songs
+   :commands commands})
 
 (defn from-yaml-file [file]
   (binding [*keywordize* true]
@@ -28,6 +36,8 @@
 (defroutes home-routes
   (GET "/columns" [] (response (from-yaml-file (:master file-map))))
   (GET "/load-file/:file" [file] (response (from-yaml-file ((keyword file) file-map))))
+  (GET "/data/:data-set" [data-set]
+    (response (get data-sets (keyword data-set) {})))
   (POST "/save" request
     (let [json (-> (:params request)
                    (:data)
